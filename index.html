@@ -1,275 +1,62 @@
-<!doctype html>
-<html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0a7c8c">
-<link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png">
-<title>Talkback Agent</title>
-<style>
-:root{--bg:#f4f8fb;--card:#fff;--line:#d6e2e9;--fg:#0d2a3f;--mut:#4d6478;--br:#0a7c8c;--brd:#075a68;--soft:#dff2f5;--acc:#ff6a3d;--wa:#12924c;--bad:#c4421a}
-*{box-sizing:border-box}[hidden]{display:none!important}
-body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))}
-header{position:sticky;top:0;z-index:20;background:var(--br);color:#fff;padding:calc(10px + env(safe-area-inset-top,0px)) 16px 10px;display:flex;align-items:center;gap:10px}
-header h1{font-size:19px;margin:0;flex:1}header small{opacity:.85}
-main{max-width:760px;margin:0 auto;padding:14px 14px 20px}
-h2{font-size:20px;margin:6px 0 10px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
-.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-button,.btn{font:600 15px/1 inherit;min-height:44px;padding:0 16px;border-radius:10px;border:1px solid var(--br);background:var(--br);color:#fff;cursor:pointer}
-button.ghost{background:#fff;color:var(--br)}button.wa{background:var(--wa);border-color:var(--wa)}button.bad{background:#fff;color:var(--bad);border-color:var(--bad)}
-button.sm{min-height:38px;padding:0 12px;font-size:14px}button:disabled{opacity:.5}
-input,select,textarea{width:100%;min-height:44px;padding:9px 11px;border:1px solid #c3cfd8;border-radius:10px;font:16px/1.3 inherit;background:#fff;color:var(--fg)}
-textarea{min-height:90px;resize:vertical}label{display:block;font-size:13px;font-weight:600;color:var(--mut);margin:8px 0 4px}
-.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:8px}
-.chip{flex:0 0 auto;min-height:36px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--fg);font-size:14px;font-weight:500}
-.chip[aria-pressed=true]{background:var(--br);color:#fff;border-color:var(--br)}
-.tag{display:inline-block;font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;background:var(--soft);color:var(--brd)}
-.tag.approved{background:#e3f6ea;color:#0b6b36}.tag.emailed,.tag.sent{background:#e8eefc;color:#1f3f9a}.tag.optout,.tag.skipped{background:#fde8e1;color:var(--bad)}
-.lead b{font-size:17px}.muted{color:var(--mut);font-size:14px}
-nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:#fff;border-top:1px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom,0px)}
-nav button{flex:1;background:none;border:0;color:var(--mut);min-height:60px;border-radius:0;font-size:12px;display:flex;flex-direction:column;gap:2px;align-items:center;justify-content:center}
-nav button span{font-size:22px;line-height:1}nav button[aria-current=true]{color:var(--br)}
-.modal{position:fixed;inset:0;z-index:50;background:rgba(13,42,63,.55);display:flex;align-items:flex-end;justify-content:center}
-.sheet{background:var(--bg);width:min(760px,100%);max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:16px 16px calc(20px + env(safe-area-inset-bottom,0px))}
-.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(86px + env(safe-area-inset-bottom,0px));background:var(--fg);color:#fff;padding:11px 16px;border-radius:10px;z-index:80;max-width:92%;font-size:14px}
-.warn{background:#fff7e0;border:1px solid #f0d98a;border-radius:10px;padding:10px 12px;font-size:14px;margin-bottom:10px}
-pre{white-space:pre-wrap;font:15px/1.5 inherit;margin:0}
-.spin{display:inline-block;width:14px;height:14px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:s .8s linear infinite;vertical-align:-2px;margin-right:6px}@keyframes s{to{transform:rotate(360deg)}}
-</style></head>
-<body>
-<header><h1>Talkback Agent <small>sales assistant</small></h1><span id="cnt" class="muted" style="color:#fff"></span></header>
-<main id="main"></main>
-<nav id="nav"></nav>
-<div id="modal" class="modal" hidden><div class="sheet" id="sheet"></div></div>
-<div id="toast" class="toast" hidden></div>
-<script>
-(function(){
-'use strict';
-var $=function(s){return document.querySelector(s)};
-var PITCH="Talkback Solutions (Mumbai, a business of Made In India Global Network Limited) rents wireless intercom systems (Hollyland Solidcom C1 Pro / C1 / C1 Air / SE Pro / roaming hub for up to 20 users / H1 beltpack), licence-free and licensed walkie-talkies, and satellite phones (enterprise) for film, TV, ads, OTT, broadcast, live events and sports. Offer: 5% cashback every Diwali on yearly equipment billing of Rs 1 lakh or more (terms apply). Rates are shared only on enquiry. Never quote prices. Do not claim private 5G products are available (they are in development). Founder: Arun Kumar, ex line/executive producer (15 years).";
-var FOOT="\n\n--\nArun Kumar | Talkback Solutions, Mumbai | WhatsApp +91 99903 99583\nA business of Made In India Global Network Limited.\nYou are receiving this because your business contact is publicly listed. Reply STOP and we will not contact you again.";
-function ld(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
-function sv(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){toast('Storage full or blocked')}}
-var S=ld('tb_set',{key:'',model:'claude-sonnet-5-5',wa:'919990399583',cap:20,name:'Arun Kumar, Talkback Solutions'});
-var L=ld('tb_leads',[]),R=ld('tb_rem',[]),OPT=ld('tb_opt',[]),SENT=ld('tb_sent',{});
-var tab='leads',filter='all',query='';
-function save(){sv('tb_leads',L);sv('tb_rem',R);sv('tb_opt',OPT);sv('tb_sent',SENT);sv('tb_set',S)}
-function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
-function today(){var d=new Date();return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2)}
-function addDays(n){var d=new Date();d.setDate(d.getDate()+n);return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2)}
-var tt;function toast(m){var t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(function(){t.hidden=true},2600)}
-function normPhone(p){var d=String(p||'').replace(/\D/g,'');if(d.length===10)d='91'+d;if(d.length===11&&d[0]==='0')d='91'+d.slice(1);return d.length>=11&&d.length<=13?d:''}
-function sentToday(){return SENT[today()]||0}
-
-/* ---------- Claude API (direct from your phone, with your own key) ---------- */
-async function claude(prompt,web,maxTok){
-  if(!S.key)throw new Error('Settings mein Anthropic API key daalo');
-  var msgs=[{role:'user',content:prompt}],texts=[];
-  for(var i=0;i<4;i++){
-    var body={model:S.model||'claude-sonnet-5-5',max_tokens:maxTok||4000,messages:msgs};
-    if(web)body.tools=[{type:'web_search_20250305',name:'web_search',max_uses:6}];
-    var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'x-api-key':S.key,'anthropic-version':'2023-06-01','content-type':'application/json','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify(body)});
-    var d=await r.json();
-    if(!r.ok)throw new Error((d.error&&d.error.message)||('API error '+r.status));
-    (d.content||[]).forEach(function(b){if(b.type==='text')texts.push(b.text)});
-    if(d.stop_reason==='pause_turn'){msgs.push({role:'assistant',content:d.content});continue}
-    break;
-  }
-  return texts.join('\n').trim();
-}
-function jparse(t,obj){var a=obj?'{':'[',b=obj?'}':']',i=t.indexOf(a),j=t.lastIndexOf(b);if(i<0||j<0)return null;try{return JSON.parse(t.slice(i,j+1))}catch(e){return null}}
-function busy(btn,on,label){if(on){btn.dataset.l=btn.innerHTML;btn.innerHTML='<span class="spin"></span>'+label;btn.disabled=true}else{btn.innerHTML=btn.dataset.l;btn.disabled=false}}
-
-/* ---------- Leads ---------- */
-function nextId(){return L.reduce(function(m,l){return Math.max(m,l.id)},0)+1}
-function addLeads(items){
-  var seen={};L.forEach(function(l){seen[(l.email||l.website||(l.name+l.company)).toLowerCase()]=1});
-  var n=0;
-  items.forEach(function(it){
-    var em=String(it.email||it.public_email||'').trim().toLowerCase();if(em&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em))em='';
-    var key=(em||it.website||((it.name||'')+(it.company||''))).toLowerCase();if(!key||seen[key])return;seen[key]=1;
-    L.push({id:nextId(),name:it.name||'',company:it.company||'',role:it.role||'',city:it.city||'',website:it.website||'',email:em,phone:normPhone(it.phone||it.public_phone),source:it.source_url||it.source||'',why:it.why_fit||it.why||'',status:'new',subject:'',body:'',wa:'',added:today(),last:'',follow:'',notes:''});n++;
-  });
-  save();return n;
-}
-async function findLeads(q,n,btn){
-  busy(btn,true,'Searching...');
-  try{
-    var p="RESEARCH. Use web search to find "+n+" real people or companies in India who hire film/TV/ad/OTT/event production equipment: "+q+". Prefer line producers, production managers, production houses, event companies. Only use contact details that are PUBLICLY listed on the business's own website or an official public page. NEVER guess or construct an email address. If no email or phone is listed, leave it empty. Always give the source_url where you found it. Return ONLY a JSON list of objects with keys: name, company, role, city, website, public_email, public_phone, source_url, why_fit.";
-    var out=await claude(p,true,6000),items=jparse(out,false);
-    if(!items)throw new Error('Result samajh nahi aaya. Dobara try karo.');
-    var a=addLeads(items);toast(a+' new leads added');render();
-  }catch(e){toast(e.message)}finally{busy(btn,false)}
-}
-async function draftLead(l){
-  var p="DRAFT. Write a short, honest, personalised first message from Talkback Solutions to this person. Context about us:\n"+PITCH+"\n\nPerson: name="+l.name+", company="+l.company+", role="+l.role+", city="+l.city+", why relevant="+l.why+".\nRules: warm and professional, under 90 words, no prices, no exaggeration, no false claims, no pressure, mention they can reply STOP to opt out, mention the WhatsApp number once. Do not invent facts about them. Return ONLY JSON: {\"subject\":..., \"email_body\":..., \"wa_text\":...} (wa_text shorter, under 50 words).";
-  var d=jparse(await claude(p,false,900),true);
-  if(!d)throw new Error('Draft nahi bana');
-  l.subject=d.subject||'';l.body=d.email_body||'';l.wa=d.wa_text||'';if(l.status==='new')l.status='drafted';save();
-}
-function stat(l){return l.status}
-function counts(){var c={all:L.length};L.forEach(function(l){c[l.status]=(c[l.status]||0)+1});return c}
-
-function vLeads(){
-  var c=counts(),st=['all','new','drafted','approved','emailed','replied','optout','skipped'];
-  var shown=L.filter(function(l){return(filter==='all'||l.status===filter)&&(!query||(l.name+l.company+l.city+l.email).toLowerCase().indexOf(query)>=0)}).sort(function(a,b){return b.id-a.id});
-  var h='<div class="card"><h2>Find new leads</h2><label>Kya dhoondhna hai</label><input id="fq" placeholder="line producers Mumbai film, event companies Delhi" value="line producers and production houses in Mumbai"><div class="row" style="margin-top:10px"><select id="fn" style="width:90px"><option>5</option><option selected>10</option><option>15</option></select><button id="fgo" style="flex:1">Search the web</button></div><p class="muted" style="margin:8px 0 0">Sirf public business pages se contact. Email guess nahi hota.</p></div>';
-  h+='<div class="row" style="margin-bottom:8px"><button class="ghost sm" id="addb">+ Add lead</button><button class="ghost sm" id="impb">Import CSV</button><button class="ghost sm" id="expb">Export CSV</button><button class="sm" id="dall">Draft all new ('+(c.new||0)+')</button></div>';
-  h+='<input id="sq" placeholder="Search leads" value="'+esc(query)+'" style="margin-bottom:8px"><div class="chips">'+st.map(function(s){return '<button class="chip" data-f="'+s+'" aria-pressed="'+(filter===s)+'">'+s+' '+(c[s]||0)+'</button>'}).join('')+'</div>';
-  if(!shown.length)h+='<div class="card muted">Koi lead nahi. Upar se search karo ya add karo.</div>';
-  shown.forEach(function(l){
-    h+='<div class="card lead" data-id="'+l.id+'" style="cursor:pointer"><div class="row" style="justify-content:space-between"><b>'+esc(l.name||l.company||'Lead')+'</b><span class="tag '+l.status+'">'+l.status+'</span></div><div class="muted">'+esc([l.role,l.company,l.city].filter(Boolean).join(' | '))+'</div><div class="muted">'+esc([l.email,l.phone].filter(Boolean).join('  ')||'no contact yet')+'</div></div>';
-  });
-  return h;
-}
-function leadSheet(id){
-  var l=L.filter(function(x){return x.id===id})[0];if(!l)return;
-  var h='<div class="row" style="justify-content:space-between"><h2 style="margin:0">'+esc(l.name||l.company)+'</h2><button class="ghost sm" id="sx">Close</button></div>';
-  h+='<p class="muted">'+esc([l.role,l.company,l.city].filter(Boolean).join(' | '))+(l.website?' | <a href="'+esc(l.website)+'" target="_blank" rel="noopener">website</a>':'')+(l.source?' | <a href="'+esc(l.source)+'" target="_blank" rel="noopener">source</a>':'')+'</p>';
-  if(l.why)h+='<p class="muted">'+esc(l.why)+'</p>';
-  h+='<div class="row"><div style="flex:1;min-width:140px"><label>Email</label><input id="le" value="'+esc(l.email)+'"></div><div style="flex:1;min-width:140px"><label>Phone</label><input id="lp" value="'+esc(l.phone)+'"></div></div>';
-  h+='<label>Email subject</label><input id="ls" value="'+esc(l.subject)+'"><label>Email message</label><textarea id="lb">'+esc(l.body)+'</textarea><label>WhatsApp message</label><textarea id="lw">'+esc(l.wa)+'</textarea><label>Notes</label><input id="ln" value="'+esc(l.notes)+'">';
-  var opt=(l.email&&OPT.indexOf(l.email.toLowerCase())>=0)||l.status==='optout';
-  if(opt)h+='<div class="warn">Is contact ne opt-out kiya hai. Message nahi bhejna.</div>';
-  h+='<div class="row" style="margin-top:12px"><button class="sm" id="ldr">'+(l.body?'Redraft with AI':'Draft with AI')+'</button><button class="sm" id="lap" '+(l.body?'':'disabled')+'>Approve</button><button class="ghost sm" id="lsk">Skip</button></div>';
-  h+='<div class="row" style="margin-top:10px"><button class="sm" id="lem" '+((l.status==='approved'||l.status==='emailed')&&l.email&&!opt?'':'disabled')+'>Send email (Gmail)</button><button class="wa sm" id="lwa" '+((l.status==='approved'||l.status==='emailed'||l.status==='replied')&&l.phone&&!opt?'':'disabled')+'>Send WhatsApp</button></div>';
-  h+='<p class="fine muted" style="margin-top:8px">Approve ke baad hi Send khulta hai. Message aapke Gmail ya WhatsApp mein khulta hai aur aap khud Send dabate ho.</p>';
-  h+='<div class="row" style="margin-top:10px"><button class="ghost sm" id="lrp">Replied</button><button class="bad sm" id="lop">Opt-out / STOP</button><button class="bad sm" id="ldl">Delete</button></div>';
-  $('#sheet').innerHTML=h;$('#modal').hidden=false;
-  function grab(){l.email=$('#le').value.trim().toLowerCase();l.phone=normPhone($('#lp').value);l.subject=$('#ls').value;l.body=$('#lb').value;l.wa=$('#lw').value;l.notes=$('#ln').value;save()}
-  $('#sx').onclick=function(){grab();$('#modal').hidden=true;render()};
-  $('#ldr').onclick=async function(){grab();var b=this;busy(b,true,'Writing...');try{await draftLead(l);leadSheet(id)}catch(e){toast(e.message);busy(b,false)}};
-  $('#lap').onclick=function(){grab();l.status='approved';save();toast('Approved');leadSheet(id)};
-  $('#lsk').onclick=function(){grab();l.status='skipped';save();$('#modal').hidden=true;render()};
-  $('#lem').onclick=function(){
-    grab();
-    if(sentToday()>=S.cap&&!confirm('Aaj ki limit ('+S.cap+') ho chuki hai. Phir bhi bhejna hai?'))return;
-    var url='mailto:'+encodeURIComponent(l.email)+'?subject='+encodeURIComponent(l.subject)+'&body='+encodeURIComponent(l.body+FOOT);
-    location.href=url;
-    setTimeout(function(){if(confirm('Email bhej diya? OK dabao to "emailed" mark ho jayega aur 5 din baad follow-up yaad dilaunga.')){l.status='emailed';l.last=today();l.follow=addDays(5);SENT[today()]=sentToday()+1;save();leadSheet(id);render()}},1200);
-  };
-  $('#lwa').onclick=function(){
-    grab();var url='https://wa.me/'+l.phone+'?text='+encodeURIComponent(l.wa);
-    window.open(url,'_blank','noopener')||(location.href=url);
-    setTimeout(function(){if(confirm('WhatsApp message bhej diya? OK = mark sent.')){l.last=today();if(!l.follow)l.follow=addDays(5);if(l.status==='approved')l.status='emailed';l.notes=(l.notes?l.notes+' ':'')+'[wa sent]';save();leadSheet(id);render()}},1200);
-  };
-  $('#lrp').onclick=function(){grab();l.status='replied';l.follow='';save();$('#modal').hidden=true;render()};
-  $('#lop').onclick=function(){grab();l.status='optout';if(l.email&&OPT.indexOf(l.email)<0)OPT.push(l.email);save();$('#modal').hidden=true;render()};
-  $('#ldl').onclick=function(){if(confirm('Delete this lead?')){L=L.filter(function(x){return x.id!==id});save();$('#modal').hidden=true;render()}};
-}
-function addLeadSheet(){
-  $('#sheet').innerHTML='<div class="row" style="justify-content:space-between"><h2 style="margin:0">Add lead</h2><button class="ghost sm" id="sx">Close</button></div>'+['name','company','role','city','email','phone','website'].map(function(k){return '<label>'+k+'</label><input id="a_'+k+'">'}).join('')+'<button style="margin-top:12px;width:100%" id="asv">Save lead</button>';
-  $('#modal').hidden=false;$('#sx').onclick=function(){$('#modal').hidden=true};
-  $('#asv').onclick=function(){var o={};['name','company','role','city','email','phone','website'].forEach(function(k){o[k]=$('#a_'+k).value});o.source='added by me';if(!o.name&&!o.company)return toast('Naam ya company daalo');addLeads([o]);$('#modal').hidden=true;render()};
-}
-function importSheet(){
-  $('#sheet').innerHTML='<div class="row" style="justify-content:space-between"><h2 style="margin:0">Import CSV</h2><button class="ghost sm" id="sx">Close</button></div><p class="muted">Pehli line header ho: name,company,role,city,email,phone,website</p><textarea id="ita" style="min-height:160px"></textarea><button style="margin-top:12px;width:100%" id="isv">Import</button>';
-  $('#modal').hidden=false;$('#sx').onclick=function(){$('#modal').hidden=true};
-  $('#isv').onclick=function(){
-    var rows=parseCSV($('#ita').value);if(rows.length<2)return toast('Header aur kam se kam 1 row chahiye');
-    var h=rows[0].map(function(x){return x.trim().toLowerCase()}),items=rows.slice(1).map(function(r){var o={};h.forEach(function(k,i){o[k]=r[i]||''});o.source='imported';return o});
-    toast(addLeads(items)+' leads imported');$('#modal').hidden=true;render();
-  };
-}
-function parseCSV(t){var rows=[],row=[],f='',q=false;for(var i=0;i<t.length;i++){var c=t[i];if(q){if(c==='"'&&t[i+1]==='"'){f+='"';i++}else if(c==='"')q=false;else f+=c}else if(c==='"')q=true;else if(c===','){row.push(f);f=''}else if(c==='\n'||c==='\r'){if(c==='\r'&&t[i+1]==='\n')i++;row.push(f);f='';if(row.join('')!=='')rows.push(row);row=[]}else f+=c}row.push(f);if(row.join('')!=='')rows.push(row);return rows}
-function exportCSV(){
-  var cols=['id','name','company','role','city','website','email','phone','source','why','status','subject','body','wa','added','last','follow','notes'];
-  var q=function(v){return '"'+String(v==null?'':v).replace(/"/g,'""')+'"'};
-  var csv=cols.join(',')+'\n'+L.map(function(l){return cols.map(function(c){return q(l[c])}).join(',')}).join('\n');
-  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='talkback-leads-'+today()+'.csv';document.body.appendChild(a);a.click();a.remove();
-}
-
-/* ---------- Today ---------- */
-function vToday(){
-  var due=L.filter(function(l){return l.status==='emailed'&&l.follow&&l.follow<=today()});
-  var now=new Date().toISOString().slice(0,16),rd=R.filter(function(r){return!r.done&&r.at<=localNow()});
-  var h='<div class="card"><h2>Aaj</h2><p class="muted">Aaj bheje: <b>'+sentToday()+'</b> / '+S.cap+' emails</p></div>';
-  h+='<div class="card"><h2>Follow-ups ('+due.length+')</h2>'+(due.length?due.map(function(l){return '<div class="row" style="justify-content:space-between;margin-bottom:8px"><div><b>'+esc(l.name||l.company)+'</b><div class="muted">emailed '+esc(l.last)+'</div></div><button class="sm" data-open="'+l.id+'">Open</button></div>'}).join(''):'<p class="muted">Koi follow-up due nahi.</p>')+'</div>';
-  h+='<div class="card"><h2>Reminders due ('+rd.length+')</h2>'+(rd.length?rd.map(function(r){return '<div class="row" style="justify-content:space-between;margin-bottom:8px"><div>'+esc(r.text)+'<div class="muted">'+esc(r.at.replace('T',' '))+'</div></div><button class="sm" data-rdone="'+r.id+'">Done</button></div>'}).join(''):'<p class="muted">Koi reminder due nahi.</p>')+'</div>';
-  var c=counts();h+='<div class="card"><h2>Pipeline</h2><p class="muted">New '+(c.new||0)+' | Drafted '+(c.drafted||0)+' | Approved '+(c.approved||0)+' | Emailed '+(c.emailed||0)+' | Replied '+(c.replied||0)+'</p></div>';
-  return h;
-}
-function localNow(){var d=new Date();return today()+'T'+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2)}
-
-/* ---------- Content / Reply helper ---------- */
-var lastOut='';
-function vContent(){
-  return '<div class="card"><h2>Content</h2><label>Kahan ke liye</label><select id="ck"><option>instagram</option><option>facebook</option><option>linkedin</option><option>youtube</option><option>email</option><option>whatsapp</option></select><label>Topic</label><input id="ct" placeholder="wireless intercom for film sets" value="wireless intercom for film sets"><button style="margin-top:10px;width:100%" id="cgo">Generate 3 variants</button></div><div class="card"><h2>Reply helper</h2><p class="muted">Aaya hua email ya message yahan paste karo. Summary aur reply draft milega.</p><textarea id="rt" placeholder="Paste email text"></textarea><button style="margin-top:10px;width:100%" id="rgo">Summarise and draft reply</button></div><div class="card" id="cout" hidden><div class="row" style="justify-content:flex-end;margin-bottom:6px"><button class="ghost sm" id="ccp">Copy</button><button class="ghost sm" id="csh">Share</button></div><pre id="ctx"></pre></div>';
-}
-function showOut(t){lastOut=t;$('#cout').hidden=false;$('#ctx').textContent=t}
-async function genContent(btn){
-  busy(btn,true,'Writing...');
-  try{showOut(await claude('Write '+$('#ck').value+' content for Talkback Solutions about: '+$('#ct').value+'.\nContext:\n'+PITCH+'\nRules: professional, no prices, no false claims, no unverified "first" or "best" claims, do not name Hollyland as a partner. Give 3 variants. Add 5 relevant hashtags where suitable.',false,2000))}catch(e){toast(e.message)}finally{busy(btn,false)}
-}
-async function genReply(btn){
-  var t=$('#rt').value.trim();if(!t)return toast('Pehle text paste karo');
-  busy(btn,true,'Reading...');
-  try{showOut(await claude('You are Arun\'s assistant at Talkback Solutions. Summarise this message in one line, say urgency (high/med/low), and write a short suggested reply. Never promise prices; ask for dates, crew size and location; WhatsApp +91 99903 99583. If the sender asks to stop, say to add them to opt-out.\n\n'+t,false,1200))}catch(e){toast(e.message)}finally{busy(btn,false)}
-}
-
-/* ---------- Reminders ---------- */
-function vRem(){
-  var h='<div class="card"><h2>New reminder</h2><label>Kya yaad dilana hai</label><input id="rtx" placeholder="Demo Films ko call karna"><label>Kab</label><input type="datetime-local" id="rat"><button style="margin-top:10px;width:100%" id="radd">Add reminder</button></div><div class="card"><h2>Reminders</h2>';
-  var rows=R.slice().sort(function(a,b){return a.at<b.at?-1:1});
-  h+=rows.length?rows.map(function(r){return '<div class="row" style="justify-content:space-between;margin-bottom:8px"><div'+(r.done?' style="opacity:.5;text-decoration:line-through"':'')+'>'+esc(r.text)+'<div class="muted">'+esc(r.at.replace('T',' '))+'</div></div><button class="bad sm" data-rdel="'+r.id+'">Delete</button></div>'}).join(''):'<p class="muted">Koi reminder nahi.</p>';
-  h+='<p class="muted">App khula ho to reminder ka notification aata hai. Band app ke liye phone ka Calendar alarm bhi laga lo.</p></div>';return h;
-}
-async function notify(txt){
-  try{
-    if('Notification' in window&&Notification.permission==='granted'){
-      var reg=navigator.serviceWorker&&await navigator.serviceWorker.getRegistration();
-      if(reg&&reg.showNotification)reg.showNotification('Talkback reminder',{body:txt});else new Notification('Talkback reminder',{body:txt});
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="theme-color" content="#0a1020" />
+  <title>BharatChain — Sovereign Trade Network</title>
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" href="./icon.svg" type="image/svg+xml" />
+  <style>
+    html, body { margin: 0; padding: 0; background: #0a1020; min-height: 100%; }
+    #boot { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #cfe0f5; font-family: system-ui, sans-serif; text-align: center; padding: 20px; z-index: 9; }
+    #boot .ring { width: 46px; height: 46px; border: 3px solid rgba(232,162,61,.25); border-top-color: #E8A23D; border-radius: 50%; animation: sp 1s linear infinite; margin-bottom: 16px; }
+    @keyframes sp { to { transform: rotate(360deg); } }
+    #boot b { color: #fff; letter-spacing: 1px; } #boot small { color: #7d93b5; margin-top: 8px; line-height: 1.5; }
+    #err { display: none; position: fixed; inset: auto 12px 12px 12px; background: #2a1216; border: 1px solid #ff6a6a; color: #ffb4b4; font: 12px/1.5 monospace; padding: 10px 12px; border-radius: 10px; z-index: 99; word-break: break-all; }
+  </style>
+  <script type="importmap">
+  {
+    "imports": {
+      "react": "https://esm.sh/react@18.3.1",
+      "react-dom/client": "https://esm.sh/react-dom@18.3.1/client?deps=react@18.3.1",
+      "lucide-react": "https://esm.sh/lucide-react@0.383.0?deps=react@18.3.1",
+      "three": "https://esm.sh/three@0.128.0",
+      "d3": "https://esm.sh/d3@7"
     }
-  }catch(e){}
-}
-function checkRem(){
-  var now=localNow(),fired=false;
-  R.forEach(function(r){if(!r.done&&!r.fired&&r.at<=now){r.fired=true;fired=true;notify(r.text);toast('Reminder: '+r.text)}});
-  if(fired){save();if(tab==='today'||tab==='rem')render()}
-}
-
-/* ---------- Settings ---------- */
-function vSet(){
-  return '<div class="card"><h2>Settings</h2><div class="warn">API key sirf is phone ke browser storage mein rehti hai. Ye app kisi aur ko share mat karo.</div><label>Anthropic API key</label><input id="s_key" type="password" value="'+esc(S.key)+'" placeholder="sk-ant-..."><label>Model</label><input id="s_model" value="'+esc(S.model)+'"><label>WhatsApp number (country code ke saath, + ke bina)</label><input id="s_wa" value="'+esc(S.wa)+'"><label>Daily email limit</label><input id="s_cap" type="number" value="'+S.cap+'"><button style="margin-top:12px;width:100%" id="ssv">Save settings</button></div><div class="card"><h2>Backup</h2><div class="row"><button class="ghost sm" id="bk">Download backup</button><button class="ghost sm" id="rs">Restore backup</button></div><input type="file" id="bkf" accept=".json" hidden></div><div class="card"><h2>Opt-out list ('+OPT.length+')</h2><p class="muted">'+esc(OPT.join(', ')||'khali')+'</p></div><div class="card"><h2>Notifications</h2><button class="ghost sm" id="np">Allow notifications</button></div><div class="card muted">Rules: Agent bina aapke Approve aur Send dabaye kuch nahi bhejta. Email sirf public business contact par. Har email mein STOP line jaati hai. Roz limit se zyada na bhejo.</div>';
-}
-
-/* ---------- Render / events ---------- */
-var TABS=[['leads','&#128101;','Leads'],['today','&#9989;','Today'],['content','&#9997;','Content'],['rem','&#9200;','Remind'],['set','&#9881;','Settings']];
-function render(){
-  $('#nav').innerHTML=TABS.map(function(t){return '<button data-tab="'+t[0]+'" aria-current="'+(tab===t[0])+'"><span>'+t[1]+'</span>'+t[2]+'</button>'}).join('');
-  $('#main').innerHTML=({leads:vLeads,today:vToday,content:vContent,rem:vRem,set:vSet})[tab]();
-  $('#cnt').textContent=L.length+' leads';
-  if(tab==='leads'){
-    $('#fgo').onclick=function(){findLeads($('#fq').value,+$('#fn').value,this)};
-    $('#addb').onclick=addLeadSheet;$('#impb').onclick=importSheet;$('#expb').onclick=exportCSV;
-    $('#sq').oninput=function(){query=this.value.toLowerCase();var p=this.selectionStart;render();var s=$('#sq');s.focus();s.setSelectionRange(p,p)};
-    $('#dall').onclick=async function(){
-      var todo=L.filter(function(l){return l.status==='new'&&(l.email||l.phone)}).slice(0,10);if(!todo.length)return toast('Draft karne ke liye koi new lead nahi');
-      var b=this;busy(b,true,'Drafting...');var ok=0;
-      for(var i=0;i<todo.length;i++){try{await draftLead(todo[i]);ok++}catch(e){toast(e.message);break}}
-      busy(b,false);toast(ok+' drafted. Har lead kholkar approve karo.');render();
-    };
   }
-  if(tab==='content'){$('#cgo').onclick=function(){genContent(this)};$('#rgo').onclick=function(){genReply(this)};$('#ccp').onclick=function(){try{navigator.clipboard.writeText(lastOut);toast('Copied')}catch(e){toast('Copy nahi hua')}};$('#csh').onclick=function(){if(navigator.share)navigator.share({text:lastOut}).catch(function(){});else toast('Share is phone par available nahi')}}
-  if(tab==='rem'){$('#radd').onclick=function(){var t=$('#rtx').value.trim(),a=$('#rat').value;if(!t||!a)return toast('Text aur time dono daalo');R.push({id:Date.now(),text:t,at:a,done:false});save();render()}}
-  if(tab==='set'){
-    $('#ssv').onclick=function(){S.key=$('#s_key').value.trim();S.model=$('#s_model').value.trim()||'claude-sonnet-5-5';S.wa=normPhone($('#s_wa').value)||S.wa;S.cap=Math.max(1,+$('#s_cap').value||20);save();toast('Saved')};
-    $('#bk').onclick=function(){var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({L:L,R:R,OPT:OPT,SENT:SENT})],{type:'application/json'}));a.download='talkback-agent-backup-'+today()+'.json';document.body.appendChild(a);a.click();a.remove()};
-    $('#rs').onclick=function(){$('#bkf').click()};
-    $('#bkf').onchange=function(){var f=this.files[0];if(!f)return;var r=new FileReader();r.onload=function(){try{var d=JSON.parse(r.result);L=d.L||[];R=d.R||[];OPT=d.OPT||[];SENT=d.SENT||{};save();toast('Restored');render()}catch(e){toast('Backup file sahi nahi')}};r.readAsText(f)};
-    $('#np').onclick=function(){if('Notification' in window)Notification.requestPermission().then(function(p){toast('Notifications: '+p)});else toast('Is device par notifications nahi')};
-  }
-}
-document.addEventListener('click',function(e){
-  var t=e.target.closest('[data-tab]');if(t){tab=t.getAttribute('data-tab');render();window.scrollTo(0,0);return}
-  var f=e.target.closest('[data-f]');if(f){filter=f.getAttribute('data-f');render();return}
-  var o=e.target.closest('[data-open]');if(o){leadSheet(+o.getAttribute('data-open'));return}
-  var c=e.target.closest('.lead');if(c){leadSheet(+c.getAttribute('data-id'));return}
-  var d=e.target.closest('[data-rdone]');if(d){R.forEach(function(r){if(String(r.id)===d.getAttribute('data-rdone'))r.done=true});save();render();return}
-  var x=e.target.closest('[data-rdel]');if(x){R=R.filter(function(r){return String(r.id)!==x.getAttribute('data-rdel')});save();render();return}
-  if(e.target===$('#modal')){$('#modal').hidden=true;render()}
-});
-if('serviceWorker' in navigator&&location.protocol.indexOf('http')===0)navigator.serviceWorker.register('sw.js').catch(function(){});
-render();checkRem();setInterval(checkRem,30000);
-window.__tb={claude:claude};
-})();
-</script></body></html>
+  </script>
+  <script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
+</head>
+<body>
+  <div id="boot">
+    <div class="ring"></div>
+    <b>BHARATCHAIN</b>
+    <small>Sovereign Trade Network load ho raha hai…<br/>Pehli baar 10–20 sec lag sakte hain (phone pe compile hota hai).</small>
+  </div>
+  <div id="root"></div>
+  <div id="err"></div>
+
+  <script>
+    window.addEventListener("error", function (e) {
+      var d = document.getElementById("err");
+      d.style.display = "block";
+      d.textContent = "Load error: " + (e.message || e.type) + (e.filename ? " @ " + e.filename.split("/").pop() : "");
+    }, true);
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", function () {
+        navigator.serviceWorker.register("./sw.js").catch(function () {});
+      });
+    }
+  </script>
+
+  <script type="text/babel" data-type="module" data-presets="react">
+    import React from "react";
+    import { createRoot } from "react-dom/client";
+    import App from "./MIIGNMobile.jsx";
+    const boot = document.getElementById("boot");
+    if (boot) boot.remove();
+    createRoot(document.getElementById("root")).render(React.createElement(App));
+  </script>
+</body>
+</html>
