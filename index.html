@@ -62,7 +62,7 @@ function sentToday(){return SENT[today()]||0}
 
 /* ---------- Claude API (direct from your phone, with your own key) ---------- */
 async function claude(prompt,web,maxTok){
-  if(!S.key)throw new Error('Settings mein Anthropic API key daalo');
+  if(!S.key)throw new Error('Is feature ke liye API key + credit chahiye. Abhi: Add lead ya Import CSV use karo.');
   var msgs=[{role:'user',content:prompt}],texts=[];
   for(var i=0;i<4;i++){
     var body={model:S.model||'claude-sonnet-5-5',max_tokens:maxTok||4000,messages:msgs};
@@ -101,6 +101,13 @@ async function findLeads(q,n,btn){
   }catch(e){toast(e.message)}finally{busy(btn,false)}
 }
 async function draftLead(l){
+  if(!S.key){
+    var fn=(l.name||'').split(' ')[0]||'there';
+    l.subject='Wireless intercom and walkie-talkie rental for your productions';
+    l.body='Hello '+fn+',\n\nI am Arun from Talkback Solutions, Mumbai. We rent wireless intercom systems, walkie-talkies and satellite phones for film, TV, ads, OTT and live events.\n\nIf you have a shoot coming up, I would be glad to share rates on WhatsApp (+91 99903 99583). We also offer a 5% Diwali cashback on yearly equipment billing of Rs 1 lakh or more (terms apply).\n\nRegards,\nArun Kumar';
+    l.wa='Hello '+fn+', Arun from Talkback Solutions, Mumbai. We rent wireless intercoms, walkie-talkies and satellite phones for film/TV/ad shoots. Happy to share rates on request. Reply STOP to opt out.';
+    if(l.status==='new')l.status='drafted';save();return;
+  }
   var p="DRAFT. Write a short, honest, personalised first message from Talkback Solutions to this person. Context about us:\n"+PITCH+"\n\nPerson: name="+l.name+", company="+l.company+", role="+l.role+", city="+l.city+", why relevant="+l.why+".\nRules: warm and professional, under 90 words, no prices, no exaggeration, no false claims, no pressure, mention they can reply STOP to opt out, mention the WhatsApp number once. Do not invent facts about them. Return ONLY JSON: {\"subject\":..., \"email_body\":..., \"wa_text\":...} (wa_text shorter, under 50 words).";
   var d=jparse(await claude(p,false,900),true);
   if(!d)throw new Error('Draft nahi bana');
